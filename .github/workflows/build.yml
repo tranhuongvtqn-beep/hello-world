@@ -1,0 +1,50 @@
+name: Build HelloWorld IPA
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Compile and Package IPA
+      run: |
+        xcrun -sdk iphoneos clang -arch arm64 \
+          -framework Foundation -framework UIKit \
+          main.m -o HelloWorld
+
+        mkdir -p Payload/HelloWorld.app
+        mv HelloWorld Payload/HelloWorld.app/
+        
+        cat <<EOF > Payload/HelloWorld.app/Info.plist
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleIdentifier</key>
+            <string>com.bro.helloworld</string>
+            <key>CFBundleName</key>
+            <string>HelloWorld</string>
+            <key>CFBundleExecutable</key>
+            <string>HelloWorld</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>MinimumOSVersion</key>
+            <string>14.0</string>
+        </dict>
+        </plist>
+        EOF
+
+        zip -r HelloWorld.ipa Payload
+
+    - name: Upload IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: HelloWorld-IPA
+        path: HelloWorld.ipa
